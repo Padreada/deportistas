@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FDPUS - Fundación Deportistas por un Sueño</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SDK de EmailJS para envío real de correos a Gmail desde el frontend -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #F4F6F9; color: #1E293B; transition: background-color 0.2s, color 0.2s; }
+    body.dark-mode { background-color: #0F172A; color: #F1F5F9; }
+    body.dark-mode .bg-white { background-color: #1E293B !important; border-color: #334155 !important; color: #F1F5F9 !important; }
+    body.dark-mode .bg-slate-50 { background-color: #0F172A !important; }
+    body.dark-mode .text-slate-900, body.dark-mode .text-slate-800 { color: #F8FAFC !important; }
+    body.dark-mode .text-slate-600, body.dark-mode .text-slate-500 { color: #94A3B8 !important; }
+    body.dark-mode input, body.dark-mode select, body.dark-mode textarea { background-color: #0F172A !important; color: #F8FAFC !important; border-color: #475569 !important; }
+    .bg-fdpus-yellow { background-color: #F7C600; }
+    .bg-fdpus-red { background-color: #D32027; }
+    .bg-fdpus-blue { background-color: #164EC8; }
+    .bg-fdpus-green { background-color: #15803D; }
+    .view-section { display: none; }
+    .view-section.active { display: block; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- TOP HEADER GLOBAL -->
+  <header class="bg-fdpus-yellow px-6 py-3 flex flex-wrap items-center justify-between shadow-sm border-b border-yellow-500/30 sticky top-0 z-40">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="navigate('dashboard')">
+        <div class="w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center text-yellow-400 font-bold text-lg">♥</div>
+        <div>
+          <h1 class="font-bold text-slate-900 leading-tight text-base">FDPUS</h1>
+          <p class="text-[11px] text-slate-800 font-medium">Fundación Deportistas por un Sueño</p>
+        </div>
+      </div>
+      <!-- BOTÓN VOLVER (VISIBLE FUERA DEL DASHBOARD) -->
+      <button id="global-back-btn" onclick="goBack()" class="hidden ml-2 bg-white hover:bg-slate-100 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm border border-yellow-500/40 transition">
+        ← Volver
+      </button>
+    </div>
+
+    <!-- NAVEGACIÓN PRINCIPAL -->
+    <nav class="flex flex-wrap items-center gap-1 bg-yellow-400/50 p-1 rounded-lg text-xs font-medium text-slate-900 my-2 md:my-0">
+      <button onclick="navigate('dashboard')" id="nav-dashboard" class="nav-btn px-3 py-1.5 rounded-md bg-white shadow-sm font-semibold">Dashboard</button>
+      <button onclick="navigate('cu01-postulaciones')" id="nav-cu01-postulaciones" class="nav-btn px-3 py-1.5 rounded-md hover:bg-white/60 transition">Postulaciones (CU-01)</button>
+      <button onclick="navigate('cu02-lista')" id="nav-cu02-lista" class="nav-btn px-3 py-1.5 rounded-md hover:bg-white/60 transition">Beneficiarios (CU-02)</button>
+      <button onclick="navigate('cu03-agenda')" id="nav-cu03-agenda" class="nav-btn px-3 py-1.5 rounded-md hover:bg-white/60 transition">Intervenciones (CU-03)</button>
+      <button onclick="navigate('bodega-movimientos')" id="nav-bodega-movimientos" class="nav-btn px-3 py-1.5 rounded-md hover:bg-white/60 transition">Bodega (CU-05)</button>
+      <button onclick="navigate('cu06-reportes')" id="nav-cu06-reportes" class="nav-btn px-3 py-1.5 rounded-md hover:bg-white/60 transition">Reportes (CU-06)</button>
+    </nav>
+
+    <!-- BUSCADOR RÁPIDO Y USUARIO -->
+    <div class="flex items-center gap-3">
+      <div class="relative hidden xl:block">
+        <input type="text" id="global-search" onkeydown="if(event.key==='Enter') globalQuickSearch()" placeholder="🔍 Buscar paciente o documento" class="bg-yellow-200/80 placeholder-slate-700 text-slate-900 text-xs px-3 py-2 rounded-lg w-52 focus:outline-none focus:bg-white transition">
+      </div>
+      <div class="flex items-center gap-2 bg-slate-900 text-white px-2.5 py-1.5 rounded-full text-xs font-semibold">
+        <span class="bg-yellow-400 text-slate-900 w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px]">CC</span>
+        <span>Cindy Caballero</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <div class="flex flex-1">
+    
+    <!-- SIDEBAR (Dashboard) -->
+    <aside id="main-sidebar" class="w-60 bg-white border-r border-slate-200 hidden lg:flex flex-col justify-between p-4">
+      <div>
+        <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">Espacio de trabajo</p>
+        <ul class="space-y-1 text-sm font-medium text-slate-600">
+          <li><button onclick="navigate('dashboard')" class="w-full text-left px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-semibold flex items-center gap-2.5">📊 Dashboard</button></li>
+          <li><button onclick="navigate('cu01-postulaciones')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2.5">📥 Postulaciones</button></li>
+          <li><button onclick="navigate('cu02-lista')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2.5">👥 Beneficiarios</button></li>
+          <li><button onclick="navigate('cu03-agenda')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2.5">📅 Agenda Clínica</button></li>
+          <li><button onclick="navigate('cu05-paso1')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2.5">📦 Asignar Ayudas</button></li>
+          <li><button onclick="navigate('bodega-movimientos')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2.5">🏭 Inventario Bodega</button></li>
+          <li><button onclick="navigate('cu06-reportes')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2.5">📄 Informes Sociales</button></li>
+        </ul>
+      </div>
+
+      <div class="space-y-3">
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+          <p class="text-xs font-semibold text-slate-800">Estamos para ayudarte</p>
+          <p class="text-[11px] text-slate-500 mt-0.5">Contacta al equipo de soporte de la fundación.</p>
+          <button onclick="alert('Canal de soporte interno FDPUS · Mesa de ayuda operativa 24/7')" class="text-xs font-semibold text-blue-600 mt-2 inline-block hover:underline">Centro de ayuda →</button>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-600 px-1 pt-1">
+          <span>🌙 Darkmode</span>
+          <input type="checkbox" onchange="document.body.classList.toggle('dark-mode')" class="cursor-pointer">
+        </div>
+        <div class="flex items-center justify-between text-[11px] text-slate-500 px-1">
+          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-green-500"></span> Sistema actualizado · v2.4</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA DE CONTENIDO DINÁMICO -->
+    <main class="flex-1 p-6 max-w-7xl mx-auto w-full">
+
+      <!-- =========================================================
+1. DASHBOARD EJECUTIVO
+      ========================================================== -->
+      <section id="view-dashboard" class="view-section active space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p class="text-xs text-slate-500">Gestión Institucional / Resumen general</p>
+            <h2 class="text-2xl font-bold text-slate-900">Dashboard ejecutivo</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Una mirada integral a la atención, el acompañamiento y la logística. · <span class="text-green-600 font-medium">● Región Metropolitana - Todas las comunas</span></p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="bg-white border border-slate-200 px-3 py-2 rounded-lg text-xs font-medium text-slate-700 shadow-sm">📅 Octubre 2026</span>
+            <button onclick="navigate('cu06-reportes')" class="bg-fdpus-green hover:bg-green-800 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition">⬇ Exportar informe</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div class="bg-white rounded-xl p-4 border border-red-300 shadow-sm flex flex-col justify-between">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-full bg-red-100 text-red-700 font-bold text-xs flex items-center justify-center">MS</span>
+                <div>
+                  <h3 class="text-sm font-bold text-slate-900">Mateo Silva</h3>
+                  <p class="text-[11px] text-slate-500">Seguimiento prioritario · La Florida</p>
+                </div>
+              </div>
+              <span class="text-red-500 text-sm">⚠️</span>
+            </div>
+            <div class="my-3">
+              <span class="bg-fdpus-red text-white text-[11px] font-semibold px-2.5 py-1 rounded-md inline-block">Caso Inactivo (+15 días sin atención)</span>
+            </div>
+            <div class="flex items-center justify-between text-[11px] pt-2 border-t border-slate-100">
+              <span class="text-slate-400">Última atención: 25 sep 2026</span>
+              <button onclick="navigate('cu03-no-atendida')" class="text-blue-600 font-semibold hover:underline">Revisar caso →</button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between cursor-pointer hover:border-blue-300" onclick="navigate('cu02-lista')">
+            <div class="flex items-center justify-between text-slate-500"><span class="text-xs font-medium">Pacientes Activos</span><span>👥</span></div>
+            <p class="text-3xl font-bold text-slate-900 my-2">1,250</p>
+            <p class="text-xs text-blue-600 font-medium">Administrar beneficiarios →</p>
+          </div>
+
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-500"><span class="text-xs font-medium">Inactivos</span><span>👤</span></div>
+            <p class="text-3xl font-bold text-slate-900 my-2">1,180</p>
+            <p class="text-xs text-slate-400">Pendientes de reactivación</p>
+          </div>
+
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between cursor-pointer hover:border-blue-300" onclick="navigate('cu01-postulaciones')">
+            <div class="flex items-center justify-between text-slate-500"><span class="text-xs font-medium">Postulaciones / Derivaciones</span><span>🔀</span></div>
+            <p class="text-3xl font-bold text-slate-900 my-2">450</p>
+            <p class="text-xs text-blue-600 font-medium">Evaluar postulaciones →</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="lg:col-span-2 bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900">Resumen de Atenciones por Mes</h3>
+                <p class="text-xs text-slate-400">2,640 atenciones · Abril a septiembre 2026</p>
+              </div>
+              <span class="bg-green-50 text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full">↑ 7.8% vs. agosto</span>
+            </div>
+            <div class="h-44 flex items-end justify-around gap-4 pt-6 border-b border-slate-100 px-4">
+              <div class="flex flex-col items-center gap-1 w-12"><span class="text-[11px] font-semibold text-slate-600">320</span><div class="w-full bg-blue-300 rounded-t-md h-20"></div><span class="text-[11px] text-slate-500 mt-1">Abr</span></div>
+              <div class="flex flex-col items-center gap-1 w-12"><span class="text-[11px] font-semibold text-slate-600">380</span><div class="w-full bg-blue-300 rounded-t-md h-24"></div><span class="text-[11px] text-slate-500 mt-1">May</span></div>
+              <div class="flex flex-col items-center gap-1 w-12"><span class="text-[11px] font-semibold text-slate-600">420</span><div class="w-full bg-blue-300 rounded-t-md h-28"></div><span class="text-[11px] text-slate-500 mt-1">Jun</span></div>
+              <div class="flex flex-col items-center gap-1 w-12"><span class="text-[11px] font-semibold text-slate-600">460</span><div class="w-full bg-blue-300 rounded-t-md h-32"></div><span class="text-[11px] text-slate-500 mt-1">Jul</span></div>
+              <div class="flex flex-col items-center gap-1 w-12"><span class="text-[11px] font-semibold text-slate-600">510</span><div class="w-full bg-blue-300 rounded-t-md h-36"></div><span class="text-[11px] text-slate-500 mt-1">Ago</span></div>
+              <div class="flex flex-col items-center gap-1 w-12"><span class="text-[11px] font-bold text-blue-700">550</span><div class="w-full bg-fdpus-blue rounded-t-md h-40"></div><span class="text-[11px] font-semibold text-slate-700 mt-1">Sep</span></div>
+            </div>
+            <div class="flex justify-between text-[11px] text-slate-400 mt-3">
+              <span>● Atenciones realizadas</span>
+              <span>Actividad mensual · No equivale al total de pacientes</span>
+            </div>
+          </div>
+
+          <div class="space-y-4 flex flex-col justify-between">
+            <div class="bg-fdpus-blue text-white rounded-xl p-5 shadow-sm flex-1 flex flex-col justify-between cursor-pointer" onclick="navigate('cu03-agenda')">
+              <div class="flex justify-between items-center"><span class="text-sm font-semibold">Ciclos activos</span><span>🔄</span></div>
+              <div class="my-2"><span class="text-4xl font-bold">86</span><span class="text-xs text-blue-200 ml-1">en octubre</span></div>
+              <p class="text-xs text-blue-100">🕒 72 al día · 14 en seguimiento →</p>
+            </div>
+
+            <div class="bg-fdpus-blue text-white rounded-xl p-5 shadow-sm flex-1 flex flex-col justify-between cursor-pointer" onclick="navigate('cu03-atendida')">
+              <div class="flex justify-between items-center"><span class="text-sm font-semibold">Visitas domiciliarias</span><span>🏠</span></div>
+              <div class="my-2"><span class="text-4xl font-bold">148</span><span class="text-xs text-blue-200 ml-1">realizadas en octubre</span></div>
+              <p class="text-xs text-blue-100">✓ Meta mensual: 180 visitas · 82% cumplido →</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-start mb-3">
+                <div><h3 class="text-sm font-bold text-slate-900">Logística territorial TENS</h3><p class="text-[11px] text-slate-400">Ruta de hoy · 13 octubre</p></div>
+                <span class="bg-blue-50 text-blue-700 text-[11px] font-semibold px-2 py-0.5 rounded">6 visitas</span>
+              </div>
+              <div class="bg-slate-100 rounded-lg h-36 border border-slate-200 p-3 flex flex-col justify-between">
+                <div class="flex items-center gap-2"><span class="bg-green-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">1</span><span class="text-xs font-semibold text-slate-700 bg-white px-2 py-0.5 rounded shadow-sm">Santiago</span></div>
+                <div class="flex items-center gap-2 self-center"><span class="bg-blue-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">2</span><span class="text-xs font-semibold text-slate-700 bg-white px-2 py-0.5 rounded shadow-sm">La Florida</span></div>
+                <div class="flex items-center gap-2 self-end"><span class="bg-blue-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">3</span><span class="text-xs font-semibold text-slate-700 bg-white px-2 py-0.5 rounded shadow-sm">Puente Alto</span></div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
+              <div><p class="text-xs font-bold text-slate-800">3 comunas · 24 km</p><p class="text-[11px] text-slate-400">TENS Daniela Rojas</p></div>
+              <button onclick="navigate('cu05-paso3')" class="bg-fdpus-blue text-white text-xs font-semibold px-3 py-2 rounded-lg">↗ Ver ruta</button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Entregas y Ayudas Técnicas</h3>
+              <p class="text-[11px] text-slate-400 mb-4">Distribución · Octubre 2026</p>
+              <div class="w-28 h-28 rounded-full border-[12px] border-blue-600 border-t-yellow-400 border-l-green-600 mx-auto flex flex-col items-center justify-center my-2">
+                <span class="text-xl font-bold text-slate-900">120</span>
+                <span class="text-[10px] text-slate-400">entregas</span>
+              </div>
+              <div class="space-y-2 mt-4 text-xs">
+                <div class="flex justify-between"><span><span class="text-blue-600">●</span> Insumos médicos</span><span class="font-bold">54 <span class="text-slate-400 font-normal">45%</span></span></div>
+                <div class="flex justify-between"><span><span class="text-green-600">●</span> Ayudas técnicas</span><span class="font-bold">36 <span class="text-slate-400 font-normal">30%</span></span></div>
+                <div class="flex justify-between"><span><span class="text-yellow-500">●</span> Apoyo alimentario</span><span class="font-bold">30 <span class="text-slate-400 font-normal">25%</span></span></div>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-green-700 font-semibold">📦 92% de entregas a tiempo</div>
+          </div>
+
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center mb-3">
+                <div><h3 class="text-sm font-bold text-slate-900">Despachos recientes</h3><p class="text-[11px] text-slate-400">Bodega central · 13 octubre</p></div>
+                <span>📦</span>
+              </div>
+              <div class="space-y-2.5">
+                <div class="p-2.5 bg-slate-50 rounded-lg flex items-center justify-between"><div><p class="text-xs font-bold text-slate-800">2 sillas de ruedas</p><p class="text-[10px] text-slate-400">DES-1048 · La Florida</p></div><span class="bg-blue-100 text-blue-700 text-[10px] font-semibold px-2 py-0.5 rounded">En ruta</span></div>
+                <div class="p-2.5 bg-slate-50 rounded-lg flex items-center justify-between"><div><p class="text-xs font-bold text-slate-800">12 kits de curación</p><p class="text-[10px] text-slate-400">DES-1047 · Santiago</p></div><span class="bg-green-100 text-green-700 text-[10px] font-semibold px-2 py-0.5 rounded">Entregado</span></div>
+                <div class="p-2.5 bg-slate-50 rounded-lg flex items-center justify-between"><div><p class="text-xs font-bold text-slate-800">8 cajas de alimentos</p><p class="text-[10px] text-slate-400">DES-1046 · Puente Alto</p></div><span class="bg-green-100 text-green-700 text-[10px] font-semibold px-2 py-0.5 rounded">Entregado</span></div>
+              </div>
+            </div>
+            <button onclick="navigate('bodega-movimientos')" class="text-xs font-semibold text-blue-600 hover:underline mt-4 text-left">Ver todos los despachos →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+2. CU-01 · ADMINISTRACIÓN DE POSTULACIONES
+      ========================================================== -->
+      <section id="view-cu01-postulaciones" class="view-section space-y-5">
+        <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-wrap gap-2 text-xs font-semibold">
+          <button onclick="navigate('cu01-postulaciones')" class="bg-fdpus-blue text-white px-3 py-1.5 rounded-lg">01. Administración Postulaciones</button>
+          <button onclick="navigate('cu01-evaluar')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-200">02. Evaluar Postulación</button>
+          <button onclick="navigate('cu01-aprobada')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-200">03. Postulación Aprobada</button>
+          <button onclick="navigate('cu01-rechazada')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-200">04. Rechazo Confirmado</button>
+        </div>
+
+        <div>
+          <p class="text-xs text-slate-500">Administración &gt; Postulaciones</p>
+          <h2 class="text-2xl font-bold text-slate-900">Administración de Postulaciones</h2>
+          <p class="text-xs text-slate-500">Consulta, organiza y administra la información de los postulantes.</p>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden text-xs">
+          <div class="px-5 py-3 border-b border-slate-200 flex justify-between items-center">
+            <span class="font-bold text-slate-800">Postulaciones <span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded ml-1">24 registros</span></span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-blue-50/70 text-blue-900 font-semibold border-b border-slate-200">
+                  <th class="py-3 px-4">Apellidos</th>
+                  <th class="py-3 px-4">Nombres</th>
+                  <th class="py-3 px-4">RUN</th>
+                  <th class="py-3 px-4">Nacimiento</th>
+                  <th class="py-3 px-4">Comuna</th>
+                  <th class="py-3 px-4">Región</th>
+                  <th class="py-3 px-4">Revisar</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr class="hover:bg-slate-50">
+                  <td class="py-3 px-4 font-bold">González Pérez</td>
+                  <td class="py-3 px-4">Martín Alejandro</td>
+                  <td class="py-3 px-4">DEMO-NNA-001</td>
+                  <td class="py-3 px-4">15/03/2016</td>
+                  <td class="py-3 px-4">La Florida</td>
+                  <td class="py-3 px-4">Metropolitana</td>
+                  <td class="py-3 px-4"><button onclick="navigate('cu01-evaluar')" class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg font-semibold hover:bg-blue-100">👁️ Evaluar</button></td>
+                </tr>
+                <tr class="hover:bg-slate-50">
+                  <td class="py-3 px-4 font-bold">Contreras Ríos</td>
+                  <td class="py-3 px-4">Mateo Andrés</td>
+                  <td class="py-3 px-4">DEMO-002</td>
+                  <td class="py-3 px-4">22/08/1995</td>
+                  <td class="py-3 px-4">Viña del Mar</td>
+                  <td class="py-3 px-4">Valparaíso</td>
+                  <td class="py-3 px-4"><button onclick="navigate('cu01-evaluar')" class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg font-semibold hover:bg-blue-100">👁️ Evaluar</button></td>
+                </tr>
+                <tr class="hover:bg-slate-50">
+                  <td class="py-3 px-4 font-bold">Fuentes Lagos</td>
+                  <td class="py-3 px-4">Sofía Elena</td>
+                  <td class="py-3 px-4">DEMO-003</td>
+                  <td class="py-3 px-4">06/11/1972</td>
+                  <td class="py-3 px-4">Concepción</td>
+                  <td class="py-3 px-4">Biobío</td>
+                  <td class="py-3 px-4"><button onclick="navigate('cu01-evaluar')" class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg font-semibold hover:bg-blue-100">👁️ Evaluar</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+3. CU-01 · EVALUAR POSTULACIÓN (APROBAR / RECHAZAR)
+      ========================================================== -->
+      <section id="view-cu01-evaluar" class="view-section space-y-5">
+        <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-wrap gap-2 text-xs font-semibold">
+          <button onclick="navigate('cu01-postulaciones')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">01. Administración Postulaciones</button>
+          <button onclick="navigate('cu01-evaluar')" class="bg-fdpus-blue text-white px-3 py-1.5 rounded-lg">02. Evaluar Postulación</button>
+          <button onclick="navigate('cu01-aprobada')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">03. Postulación Aprobada</button>
+          <button onclick="navigate('cu01-rechazada')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">04. Rechazo Confirmado</button>
+        </div>
+
+        <div>
+          <p class="text-xs text-slate-500">Gestión institucional / Postulaciones / Evaluar postulación</p>
+          <h2 class="text-2xl font-bold text-slate-900">Evaluar postulación</h2>
+          <p class="text-xs text-slate-500">CU-01 · Paso 03 de 05 · Revisión de antecedentes · Responsable: Camila Rojas · Equipo médico</p>
+        </div>
+
+        <div class="bg-white rounded-xl p-4 border border-slate-200 flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Martín Alejandro González Pérez</h3>
+            <p class="text-xs text-slate-500">DEMO-NNA-001 · 15/03/2016 · 10 años · La Florida | POST-DEMO-001 · Sin ficha oficial creada</p>
+          </div>
+          <span class="bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1 rounded-full">En evaluación</span>
+        </div>
+
+        <div class="bg-white rounded-xl p-5 border border-slate-200 space-y-4 text-xs">
+          <h3 class="text-sm font-bold text-slate-900">Antecedentes para evaluación</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div><span class="text-slate-400 block">Postulación</span><strong>POST-DEMO-001 · Enviada 01/10/2026</strong></div>
+            <div><span class="text-slate-400 block">Apoderada</span><strong>María José González Pérez · Madre</strong></div>
+            <div><span class="text-slate-400 block">Contexto</span><strong>RSH 40% · La Florida · Metropolitana</strong></div>
+          </div>
+
+          <div class="p-3 bg-slate-50 border rounded-lg text-blue-700 font-semibold">
+            📄 Informe_medico_DEMO.pdf · ✓ Adjunto (248 KB)
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-800 mb-1">Notas de revisión</label>
+            <textarea rows="2" class="w-full border border-slate-300 rounded-lg p-2.5">Formulario e informe médico revisados; antecedentes legibles y completos.</textarea>
+          </div>
+
+          <div class="bg-blue-50 border-l-4 border-blue-600 p-3 text-blue-900">
+            <strong>Revisión completa:</strong> Solo una aprobación confirmada creará la ficha oficial y notificará por Gmail a la apoderada. Mientras no se confirme, el NNA sigue sin ficha oficial.
+          </div>
+
+          <div class="flex justify-end gap-3 pt-2">
+            <button onclick="openRejectModal()" class="bg-fdpus-red hover:bg-red-800 text-white px-5 py-2 rounded-lg font-semibold">Rechazar</button>
+            <button onclick="openApproveModal()" class="bg-fdpus-blue hover:bg-blue-800 text-white px-5 py-2 rounded-lg font-semibold">Aprobar</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+4. CU-01 · POSTULACIÓN APROBADA (CON NOTIFICACIÓN GMAIL)
+      ========================================================== -->
+      <section id="view-cu01-aprobada" class="view-section space-y-5">
+        <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-wrap gap-2 text-xs font-semibold">
+          <button onclick="navigate('cu01-postulaciones')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">01. Administración Postulaciones</button>
+          <button onclick="navigate('cu01-evaluar')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">02. Evaluar Postulación</button>
+          <button onclick="navigate('cu01-aprobada')" class="bg-fdpus-green text-white px-3 py-1.5 rounded-lg">03. Postulación Aprobada</button>
+          <button onclick="navigate('cu01-rechazada')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">04. Rechazo Confirmado</button>
+        </div>
+
+        <h2 class="text-2xl font-bold text-slate-900">Postulación aprobada</h2>
+
+        <div class="bg-green-50 border-l-4 border-green-600 p-3.5 rounded-r-xl text-xs text-green-900">
+          <strong>Aprobación confirmada · Ficha oficial creada:</strong> POST-DEMO-001 fue aprobada el 02/10/2026 a las 10:15. Se creó FICHA-DEMO-001 para DEMO-NNA-001 y se notificó a <span id="banner-email-destino" class="font-bold">maria.gonzalez@gmail.com</span>.
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs">
+          <div class="lg:col-span-2 bg-white rounded-xl p-5 border border-slate-200 space-y-3">
+            <h3 class="text-sm font-bold text-slate-900">Resolución y trazabilidad</h3>
+            <p><strong>Resolución:</strong> Aprobada | <strong>Responsable:</strong> Camila Rojas · Equipo médico</p>
+            <div class="space-y-2 pt-2">
+              <div class="bg-slate-50 p-2.5 rounded">01/10/2026 - 11:30 · Evento: Postulación enviada · Pendiente de evaluación</div>
+              <div class="bg-slate-50 p-2.5 rounded">02/10/2026 - 10:00 · Evento: Revisión de antecedentes · Informe revisado</div>
+              <div class="bg-blue-50 p-2.5 rounded">02/10/2026 - 10:15 · Evento: Aprobación confirmada · <strong>FICHA-DEMO-001 creada · Activa</strong></div>
+              <div class="bg-green-50 p-2.5 rounded border border-green-200 flex items-center justify-between">
+                <span>✉️ Notificación Gmail enviada a <strong id="trace-email-destino">maria.gonzalez@gmail.com</strong></span>
+                <span class="bg-green-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">Entregado</span>
+              </div>
+            </div>
+
+            <!-- COMPROBANTE DEL CORREO ENVIADO A GMAIL -->
+            <div class="mt-4 p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-800">📧 Vista previa del correo enviado a Gmail</span>
+                <button onclick="openGmailComposeFallback()" class="text-blue-600 font-semibold hover:underline">Abrir en Gmail ↗</button>
+              </div>
+              <p class="text-slate-600"><strong>Para:</strong> <span id="preview-email-to">maria.gonzalez@gmail.com</span></p>
+              <p class="text-slate-600"><strong>Asunto:</strong> ¡Bienvenido a FDPUS! Postulación aceptada - Martín Alejandro González Pérez</p>
+              <div class="bg-white p-3 rounded-lg border border-slate-200 text-slate-700 leading-relaxed">
+                Estimada <strong>María José González Pérez</strong>,<br><br>
+                Nos alegra informarle que la postulación de <strong>Martín Alejandro González Pérez</strong> (RUN: DEMO-NNA-001) ha sido <strong>ACEPTADA</strong> en la <strong>Fundación Deportistas por un Sueño (FDPUS)</strong>.<br>
+                Su ficha oficial ya se encuentra activa bajo el código <strong>FICHA-DEMO-001</strong>. Pronto nuestro equipo clínico se pondrá en contacto para coordinar su primera atención.<br><br>
+                Atentamente,<br>
+                <strong>Equipo Médico y Social · FDPUS</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-5 border border-slate-200 space-y-2.5">
+            <h3 class="text-sm font-bold text-slate-900">Datos vinculados a la ficha</h3>
+            <p><strong>Apoderada:</strong> María José González Pérez · Madre</p>
+            <p><strong>Contacto:</strong> +569 8765 4321 · <span id="card-email-destino">maria.gonzalez@gmail.com</span></p>
+            <p><strong>Dirección:</strong> Los Aromos 1240, depto. 302 · La Florida</p>
+            <p><strong>Referencia oficial:</strong> FICHA-DEMO-001</p>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button onclick="navigate('cu01-postulaciones')" class="border border-slate-300 bg-white px-4 py-2 rounded-lg text-xs font-semibold">Volver al listado</button>
+          <button onclick="navigate('cu02-enriquecer')" class="bg-fdpus-blue text-white px-5 py-2 rounded-lg text-xs font-semibold">Enriquecer ficha del beneficiario →</button>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           4B. CU-01 · RECHAZO CONFIRMADO Y PROCESO CERRADO
+      ========================================================== -->
+      <section id="view-cu01-rechazada" class="view-section space-y-5">
+        <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-wrap gap-2 text-xs font-semibold">
+          <button onclick="navigate('cu01-postulaciones')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">01. Administración Postulaciones</button>
+          <button onclick="navigate('cu01-evaluar')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">02. Evaluar Postulación</button>
+          <button onclick="navigate('cu01-aprobada')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">03. Postulación Aprobada</button>
+          <button onclick="navigate('cu01-rechazada')" class="bg-fdpus-red text-white px-3 py-1.5 rounded-lg">04. Rechazo Confirmado</button>
+        </div>
+
+        <div>
+          <p class="text-xs text-slate-500">Gestión institucional / Postulaciones / Rechazo confirmado</p>
+          <h2 class="text-2xl font-bold text-slate-900">Rechazo confirmado</h2>
+          <p class="text-xs text-slate-500">CU-01 · Paso 05 de 05 · Resolución desfavorable · 02/10/2026 - 10:15</p>
+        </div>
+
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-3 text-xs text-amber-900">
+          <strong>Ruta alternativa:</strong> Este desenlace reemplaza la aprobación del paso anterior. No se crea ficha oficial y no continúa hacia CU-02 a CU-05.
+        </div>
+
+        <div class="bg-white rounded-xl p-4 border border-slate-200 flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Martín Alejandro González Pérez</h3>
+            <p class="text-xs text-slate-500">DEMO-NNA-001 · 15/03/2016 · 10 años · La Florida | POST-DEMO-001 · Sin ficha oficial creada</p>
+          </div>
+          <span class="bg-red-100 text-red-800 text-xs font-semibold px-3 py-1 rounded-full">Rechazada · Proceso cerrado</span>
+        </div>
+
+        <div class="bg-red-50 border-l-4 border-red-600 p-3 text-xs text-red-900">
+          <strong>Proceso de postulación cerrado:</strong> La causal de rechazo quedó registrada. POST-DEMO-001 ya no está pendiente de evaluación.
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs">
+          <div class="lg:col-span-2 bg-white rounded-xl p-5 border border-slate-200 space-y-3">
+            <h3 class="text-sm font-bold text-slate-900">Resolución registrada</h3>
+            <div>
+              <span class="text-slate-400 block">Causal obligatoria</span>
+              <strong id="confirmed-reject-reason">No cumple criterios del programa (supuesto ficticio de demostración).</strong>
+            </div>
+            <p><strong>Fecha de resolución:</strong> 02/10/2026 - 10:15 | <strong>Responsable:</strong> Camila Rojas · Equipo médico</p>
+            <p><strong>Estado final:</strong> Rechazada · Proceso cerrado · Sin ficha oficial</p>
+            <div class="space-y-2 pt-2">
+              <div class="bg-slate-50 p-2.5 rounded">Fecha: 01/10/2026 - 11:30 · Registro: Envío de postulación · Resultado: Antecedentes recibidos</div>
+              <div class="bg-blue-50 p-2.5 rounded">Fecha: 02/10/2026 - 10:15 · Registro: Rechazo confirmado con causal · <strong>Resultado: Proceso cerrado sin creación de ficha</strong></div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-5 border border-slate-200 space-y-3 flex flex-col justify-between">
+            <div class="space-y-2">
+              <h3 class="text-sm font-bold text-slate-900">Información a la apoderada</h3>
+              <p><strong>Destinataria:</strong> María José González Pérez · Madre</p>
+              <p><strong>Correo de referencia:</strong> maria.gonzalez@gmail.com</p>
+              <div class="bg-blue-50 border-l-4 border-blue-600 p-2.5 text-blue-900 mt-2">
+                <strong>Comunicación registrada:</strong> La resolución y su causal quedan disponibles para consulta.
+              </div>
+            </div>
+            <button onclick="navigate('cu01-evaluar')" class="border border-slate-300 px-4 py-2 rounded-lg font-semibold hover:bg-slate-50 w-full">Consultar antecedentes</button>
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button onclick="navigate('cu01-postulaciones')" class="border border-slate-300 bg-white px-5 py-2 rounded-lg text-xs font-semibold hover:bg-slate-50">Volver al listado</button>
+        </div>
+      </section>
+
+      <!-- =========================================================
+5. CU-02 · ADMINISTRACIÓN DE BENEFICIARIOS (CON FILTRO REAL)
+      ========================================================== -->
+      <section id="view-cu02-lista" class="view-section space-y-5">
+        <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-wrap gap-2 text-xs font-semibold">
+          <button onclick="navigate('cu02-lista')" class="bg-fdpus-blue text-white px-3 py-1.5 rounded-lg">01. Listado Beneficiarios</button>
+          <button onclick="navigate('ficha-beneficiario')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">02. Ficha Activa</button>
+          <button onclick="navigate('cu02-enriquecer')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">03. Enriquecer Ficha</button>
+          <button onclick="navigate('cu02-baja')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">04. Dar de Baja</button>
+          <button onclick="navigate('cu02-cerrada')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">05. Ficha Cerrada</button>
+        </div>
+
+        <div>
+          <p class="text-xs text-slate-500">Administración &gt; Beneficiarios</p>
+          <h2 class="text-2xl font-bold text-slate-900">Administración de Beneficiarios</h2>
+          <p class="text-xs text-slate-500">Consulta, organiza y administra la información de los beneficiarios.</p>
+        </div>
+
+        <div class="bg-white rounded-xl p-5 border border-slate-200 space-y-4 text-xs">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Texto Buscar</label>
+              <input type="text" id="benef-search-input" onkeyup="filterBeneficiaries()" placeholder="Nombre, apellido o RUN" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Región</label>
+              <select id="benef-region-select" onchange="filterBeneficiaries()" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white">
+                <option value="">Todas las regiones</option>
+                <option value="Metropolitana">Metropolitana</option>
+                <option value="Valparaíso">Valparaíso</option>
+                <option value="Biobío">Biobío</option>
+                <option value="La Araucanía">La Araucanía</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Comuna</label>
+              <select id="benef-comuna-select" onchange="filterBeneficiaries()" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white">
+                <option value="">Todas las comunas</option>
+                <option value="La Florida">La Florida</option>
+                <option value="Santiago">Santiago (Sin resultados)</option>
+                <option value="Viña del Mar">Viña del Mar</option>
+                <option value="Concepción">Concepción</option>
+                <option value="Puente Alto">Puente Alto</option>
+                <option value="Temuco">Temuco</option>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <label class="flex items-center gap-2 text-slate-600 cursor-pointer pb-2">
+                <input type="checkbox" id="benef-electro-check" onchange="filterBeneficiaries()" class="rounded"> Solo Electrodependientes
+              </label>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap justify-end gap-2 pt-1">
+            <button onclick="resetBenefFilters()" class="border border-slate-300 px-3 py-2 rounded-lg font-semibold hover:bg-slate-50">Limpiar filtros</button>
+            <button onclick="filterBeneficiaries()" class="bg-fdpus-green text-white px-4 py-2 rounded-lg font-semibold">🔍 Buscar</button>
+            <button onclick="openExportModal()" class="bg-fdpus-green text-white px-4 py-2 rounded-lg font-semibold">⬇ Exportar</button>
+            <button onclick="navigate('cu02-enriquecer')" class="bg-fdpus-blue text-white px-4 py-2 rounded-lg font-semibold">+ Agregar Nuevo</button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden text-xs">
+          <div class="px-5 py-3 border-b border-slate-200 flex justify-between items-center">
+            <span class="font-bold text-slate-800">Beneficiarios <span id="benef-count-badge" class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded ml-1">6 de 24 registros</span></span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse" id="benef-table">
+              <thead>
+                <tr class="bg-blue-50/70 text-blue-900 font-semibold border-b border-slate-200">
+                  <th class="py-3 px-4">Apellidos ↑</th>
+                  <th class="py-3 px-4">Nombres</th>
+                  <th class="py-3 px-4">RUN</th>
+                  <th class="py-3 px-4">Nacimiento</th>
+                  <th class="py-3 px-4">Comuna</th>
+                  <th class="py-3 px-4">Región</th>
+                  <th class="py-3 px-4">Ver</th>
+                </tr>
+              </thead>
+              <tbody id="benef-table-body" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+          <div id="benef-empty-state" class="hidden py-12 text-center space-y-2">
+            <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto font-bold">🔍</div>
+            <h4 class="font-bold text-slate-800 text-sm">No se encontraron beneficiarios</h4>
+            <p class="text-slate-400">No hay coincidencias con los criterios seleccionados. Revisa el texto o cambia los filtros.</p>
+            <button onclick="resetBenefFilters()" class="border border-slate-300 px-4 py-1.5 rounded-lg font-semibold hover:bg-slate-50 mt-2">Limpiar filtros</button>
+          </div>
+          <div class="px-5 py-3 border-t border-slate-100 flex flex-wrap justify-between items-center text-slate-500">
+            <span>Mostrando 1–6 de 24 beneficiarios</span>
+            <div class="flex items-center gap-1">
+              <button class="px-2 py-1 rounded border hover:bg-slate-50">&lt;</button>
+              <button class="px-2.5 py-1 rounded bg-fdpus-blue text-white font-semibold">1</button>
+              <button onclick="alert('Página 2 de beneficiarios')" class="px-2.5 py-1 rounded border hover:bg-slate-50">2</button>
+              <button onclick="alert('Página 3 de beneficiarios')" class="px-2.5 py-1 rounded border hover:bg-slate-50">3</button>
+              <button onclick="alert('Página 4 de beneficiarios')" class="px-2.5 py-1 rounded border hover:bg-slate-50">4</button>
+              <button class="px-2 py-1 rounded border hover:bg-slate-50">&gt;</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+6. FICHA DEL BENEFICIARIO
+      ========================================================== -->
+      <section id="view-ficha-beneficiario" class="view-section space-y-5">
+        <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-wrap gap-2 text-xs font-semibold">
+          <button onclick="navigate('cu02-lista')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">01. Listado Beneficiarios</button>
+          <button onclick="navigate('ficha-beneficiario')" class="bg-fdpus-blue text-white px-3 py-1.5 rounded-lg">02. Ficha Activa</button>
+          <button onclick="navigate('cu02-enriquecer')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">03. Enriquecer Ficha</button>
+          <button onclick="navigate('cu02-baja')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">04. Dar de Baja</button>
+          <button onclick="navigate('cu02-cerrada')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">05. Ficha Cerrada</button>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-2xl font-bold text-slate-900">Ficha del beneficiario</h2>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="navigate('cu02-enriquecer')" class="bg-slate-900 text-white px-3 py-2 rounded-lg text-xs font-semibold">Editar / Corregir</button>
+            <button onclick="navigate('cu03-agenda')" class="bg-fdpus-blue text-white px-3 py-2 rounded-lg text-xs font-semibold">📅 Agenda Clínica</button>
+            <button onclick="navigate('cu02-baja')" class="bg-fdpus-red text-white px-3 py-2 rounded-lg text-xs font-semibold">Dar de baja</button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl p-4 border border-slate-200 flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Martín Alejandro González Pérez</h3>
+            <p class="text-xs text-slate-500">DEMO-NNA-001 · FICHA-DEMO-001 · Origen POST-DEMO-001</p>
+          </div>
+          <span class="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">Ficha activa</span>
+        </div>
+
+        <div class="bg-white rounded-xl p-5 border border-slate-200 space-y-4 text-xs">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div><span class="text-slate-400 block">Nombres</span><strong>Martín Alejandro</strong></div>
+            <div><span class="text-slate-400 block">Apellidos</span><strong>González Pérez</strong></div>
+            <div><span class="text-slate-400 block">RUN</span><strong>DEMO-NNA-001</strong></div>
+            <div><span class="text-slate-400 block">Nacimiento</span><strong>15/03/2016 (10 años)</strong></div>
+            <div><span class="text-slate-400 block">Dirección</span><strong>Los Aromos 1240, depto. 302</strong></div>
+            <div><span class="text-slate-400 block">Comuna / Región</span><strong>La Florida · Metropolitana</strong></div>
+            <div><span class="text-slate-400 block">Apoderada</span><strong>María José González Pérez · Madre</strong></div>
+            <div><span class="text-slate-400 block">RSH</span><strong>40%</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+7. ENRIQUECER / EDITAR FICHA DEL BENEFICIARIO
+      ========================================================== -->
+      <section id="view-cu02-enriquecer" class="view-section space-y-5">
+        <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-wrap gap-2 text-xs font-semibold">
+          <button onclick="navigate('cu02-lista')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">01. Listado Beneficiarios</button>
+          <button onclick="navigate('ficha-beneficiario')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">02. Ficha Activa</button>
+          <button onclick="navigate('cu02-enriquecer')" class="bg-fdpus-blue text-white px-3 py-1.5 rounded-lg">03. Enriquecer Ficha</button>
+          <button onclick="navigate('cu02-baja')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">04. Dar de Baja</button>
+          <button onclick="navigate('cu02-cerrada')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg">05. Ficha Cerrada</button>
+        </div>
+
+        <h2 class="text-2xl font-bold text-slate-900">Enriquecer / Editar ficha del beneficiario</h2>
+
+        <div id="enriquecer-error-banner" class="hidden bg-red-50 border-l-4 border-red-600 p-3.5 rounded-r-xl text-xs text-red-800">
+          <strong>ⓘ No se pudieron guardar los cambios. Corrija los campos obligatorios (Identificador, Apellidos y Comuna).</strong>
+        </div>
+
+        <div class="bg-white rounded-xl p-5 border border-slate-200 space-y-5 text-xs">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div><label class="block font-semibold mb-1">Identificador *</label><input id="enq-id" type="text" value="DEMO-NNA-001" class="w-full border rounded-lg px-3 py-2"></div>
+            <div><label class="block font-semibold mb-1">Nombres *</label><input id="enq-nombres" type="text" value="Martín Alejandro" class="w-full border rounded-lg px-3 py-2"></div>
+            <div><label class="block font-semibold mb-1">Apellidos *</label><input id="enq-apellidos" type="text" value="González Pérez" class="w-full border rounded-lg px-3 py-2"></div>
+            <div><label class="block font-semibold mb-1">Comuna *</label><select id="enq-comuna" class="w-full border rounded-lg px-3 py-2 bg-white"><option value="La Florida">La Florida</option><option value="">Seleccione una opción</option></select></div>
+          </div>
+
+          <div>
+            <h4 class="font-bold text-slate-900 text-sm mb-3">Salud y apoyos</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label class="font-semibold">Enfermedad</label>
+                  <button type="button" onclick="openNewDiseaseModal()" class="text-green-700 font-bold hover:underline">+ Nuevo</button>
+                </div>
+                <select id="disease-select" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white">
+                  <option value="">Seleccione una opción</option>
+                  <option>Asma</option>
+                  <option>Diabetes mellitus tipo 1</option>
+                  <option>Epilepsia</option>
+                  <option>Fibrosis quística</option>
+                  <option>Parálisis cerebral</option>
+                  <option>Otra enfermedad</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-semibold mb-1">Talla de Pañales</label>
+                <select class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"><option>Seleccione una opción</option><option>M</option><option>G</option><option>XG</option></select>
+              </div>
+              <div>
+                <label class="block font-semibold mb-1">Gastrostomía</label>
+                <select class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"><option>No aplica</option><option>Sí</option></select>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+              <label class="flex items-center gap-2"><input type="checkbox"> Credencial de Discapacidad</label>
+              <label class="flex items-center gap-2"><input type="checkbox"> Ley Ricarte Soto</label>
+              <label class="flex items-center gap-2"><input type="checkbox"> Hospitalización Domiciliaria</label>
+              <label class="flex items-center gap-2"><input type="checkbox" checked> Electrodependiente</label>
+            </div>
+            <div class="bg-blue-50/70 p-3 rounded-lg">
+              <label class="block font-bold text-blue-900 mb-1">Observaciones:</label>
+              <textarea rows="2" class="w-full border border-blue-200 rounded-lg p-2 bg-white"></textarea>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-2">
+            <button onclick="openDiscardModal()" class="border border-slate-300 px-4 py-2 rounded-lg font-semibold">Cancelar</button>
+            <button onclick="saveEnrichedFicha()" class="bg-fdpus-green text-white px-5 py-2 rounded-lg font-semibold">Guardar cambios</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+8. DAR DE BAJA Y FICHA CERRADA (CU-02)
+      ========================================================== -->
+      <section id="view-cu02-baja" class="view-section space-y-5">
+        <h2 class="text-2xl font-bold text-slate-900">Dar de baja la ficha oficial</h2>
+        <div class="bg-white rounded-xl p-5 border space-y-4 text-xs">
+          <div class="flex gap-2">
+            <button type="button" onclick="selectCausal('Fallecimiento')" id="btn-causal-Fallecimiento" class="causal-btn border px-4 py-2 rounded-lg font-semibold">⚪ Fallecimiento</button>
+            <button type="button" onclick="selectCausal('Egreso')" id="btn-causal-Egreso" class="causal-btn bg-fdpus-blue text-white px-4 py-2 rounded-lg font-semibold">● Egreso</button>
+            <button type="button" onclick="selectCausal('Desvinculación')" id="btn-causal-Desvinculación" class="causal-btn border px-4 py-2 rounded-lg font-semibold">⚪ Desvinculación</button>
+          </div>
+          <p>Causal seleccionada: <strong id="selected-causal-label" class="text-blue-700">Egreso</strong></p>
+          <div class="flex justify-end gap-2">
+            <button onclick="navigate('ficha-beneficiario')" class="border px-4 py-2 rounded-lg font-semibold">Cancelar</button>
+            <button onclick="navigate('cu02-cerrada')" class="bg-fdpus-red text-white px-4 py-2 rounded-lg font-semibold">Confirmar baja</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-cu02-cerrada" class="view-section space-y-5">
+        <h2 class="text-2xl font-bold text-slate-900">Ficha oficial cerrada</h2>
+        <div class="bg-green-50 border-l-4 border-green-600 p-3 text-xs text-green-900"><strong>Baja confirmada:</strong> FICHA-DEMO-001 cerrada y auditada.</div>
+        <button onclick="navigate('cu02-lista')" class="border px-4 py-2 rounded-lg text-xs font-semibold">Volver al listado</button>
+      </section>
+
+      <!-- =========================================================
+9. CU-03 INTERVENCIONES CLÍNICAS
+      ========================================================== -->
+      <section id="view-cu03-agenda" class="view-section space-y-5">
+        <div class="bg-white p-3 rounded-xl border flex flex-wrap gap-2 text-xs font-semibold">
+          <button onclick="navigate('cu03-agenda')" class="bg-fdpus-blue text-white px-3 py-1.5 rounded-lg">01. Agenda</button>
+          <button onclick="navigate('cu03-atendida')" class="bg-slate-100 px-3 py-1.5 rounded-lg">02. Registrar Atendida</button>
+          <button onclick="navigate('cu03-no-atendida')" class="bg-slate-100 px-3 py-1.5 rounded-lg">03. Registrar No Atendida</button>
+          <button onclick="navigate('cu03-historial')" class="bg-slate-100 px-3 py-1.5 rounded-lg">04. Historial</button>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-900">Agenda de intervenciones clínicas</h2>
+        <div class="bg-white rounded-xl p-5 border space-y-3 text-xs">
+          <p><strong>Paciente:</strong> Martín Alejandro González Pérez · <strong>Ciclo:</strong> CICLO-DEMO-001 (3/4)</p>
+          <button onclick="navigate('cu03-atendida')" class="bg-fdpus-blue text-white px-4 py-2 rounded-lg font-semibold">Registrar Atención SES-DEMO-004 →</button>
+        </div>
+      </section>
+
+      <section id="view-cu03-atendida" class="view-section space-y-5">
+        <h2 class="text-2xl font-bold text-slate-900">Registro de Intervención Clínica</h2>
+        <div class="flex gap-3 text-xs">
+          <button class="border-2 border-green-600 bg-green-50 px-4 py-2 rounded-lg font-bold text-green-700">🟢 Atendida ✓</button>
+          <button onclick="navigate('cu03-no-atendida')" class="border px-4 py-2 rounded-lg">⚪ No Atendida</button>
+        </div>
+        <div class="bg-white p-4 rounded-xl border flex justify-between items-center text-xs">
+          <span id="attached-file-name" class="font-semibold">📄 Registro_sesion_DEMO.pdf</span>
+          <button onclick="openModal()" class="bg-fdpus-blue text-white px-3 py-1.5 rounded-lg font-semibold">+ Agregar Archivo</button>
+        </div>
+        <button onclick="navigate('cu03-historial')" class="bg-fdpus-blue text-white px-5 py-2 rounded-lg text-xs font-semibold">💾 Guardar registro →</button>
+      </section>
+
+      <section id="view-cu03-no-atendida" class="view-section space-y-5">
+        <h2 class="text-2xl font-bold text-slate-900">Registrar sesión No Atendida</h2>
+        <div class="bg-red-50 border-l-4 border-red-600 p-4 text-xs text-red-700"><strong>ⓘ La atención no fue realizada:</strong> Ruta alternativa excluyente.</div>
+        <button onclick="showSuccess('Registro de intervención guardado con éxito')" class="bg-fdpus-blue text-white px-5 py-2 rounded-lg text-xs font-semibold">💾 Guardar No Atendida</button>
+      </section>
+
+      <section id="view-cu03-historial" class="view-section space-y-5">
+        <h2 class="text-2xl font-bold text-slate-900">Historial de Intervenciones Clínicas</h2>
+        <div class="bg-green-50 border-l-4 border-green-600 p-3 text-xs text-green-900"><strong>Atención exitosa registrada (4/4).</strong></div>
+        <button onclick="showSuccess('Intervención asignada con éxito')" class="bg-fdpus-green text-white px-4 py-2 rounded-lg text-xs font-semibold">Finalizar</button>
+      </section>
+
+      <!-- =========================================================
+10. CU-05 BODEGA Y DESPACHOS (CON SUB-NAVEGACIÓN)
+      ========================================================== -->
+      <section id="view-bodega-movimientos" class="view-section space-y-5">
+        <div class="bg-white p-3 rounded-xl border flex flex-wrap gap-2 text-xs font-semibold">
+          <button onclick="navigate('bodega-movimientos')" class="bg-fdpus-blue text-white px-3 py-1.5 rounded-lg">00. Movimientos</button>
+          <button onclick="navigate('cu05-paso1')" class="bg-slate-100 px-3 py-1.5 rounded-lg">01. Asignar Ayuda</button>
+          <button onclick="navigate('cu05-paso2')" class="bg-slate-100 px-3 py-1.5 rounded-lg">02. Bandeja Bodega</button>
+          <button onclick="navigate('cu05-paso3')" class="bg-slate-100 px-3 py-1.5 rounded-lg">03. Preparación y Despacho</button>
+          <button onclick="navigate('cu05-paso4')" class="bg-slate-100 px-3 py-1.5 rounded-lg">04. Entrega Efectiva</button>
+          <button onclick="navigate('cu05-paso5')" class="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg">05. Sin Stock</button>
+        </div>
+        <div class="flex justify-between items-center">
+          <h2 class="text-2xl font-bold text-slate-900">Movimientos de Bodega</h2>
+          <button onclick="navigate('cu05-paso1')" class="bg-fdpus-blue text-white px-4 py-2 rounded-lg text-xs font-semibold">+ Asignar Ayuda (CU-05)</button>
+        </div>
+        <div class="bg-white rounded-xl p-5 border text-xs space-y-2">
+          <p><strong>1048</strong> · 12/10/2026 · Ingreso · Distribuidora Los Andes</p>
+          <p><strong>1047</strong> · 12/10/2026 · Egreso · Municipalidad de Maipú</p>
+        </div>
+      </section>
+
+      <section id="view-cu05-paso1" class="view-section space-y-5">
+        <h2 class="text-2xl font-bold text-slate-900">Asignar ayuda externa al beneficiario</h2>
+        <button onclick="navigate('cu05-paso2')" class="bg-fdpus-blue text-white px-5 py-2 rounded-lg text-xs font-semibold">Enviar solicitud a bodega →</button>
+      </section>
+
+      <section id="view-cu05-paso2" class="view-section space-y-5">
+        <h2 class="text-2xl font-bold text-slate-900">Bandeja de solicitudes de bodega</h2>
+        <div class="flex gap-3 text-xs">
+          <button onclick="navigate('cu05-paso5')" class="border px-4 py-2 rounded-lg font-semibold">Registrar sin stock</button>
+          <button onclick="navigate('cu05-paso3')" class="bg-fdpus-blue text-white px-5 py-2 rounded-lg font-semibold">Iniciar preparación →</button>
+        </div>
+      </section>
+
+      <section id="view-cu05-paso3" class="view-section space-y-5">
+        <h2 class="text-2xl font-bold text-slate-900">Preparación y despacho de ayuda</h2>
+        <button onclick="navigate('cu05-paso4')" class="bg-fdpus-green text-white px-5 py-2 rounded-lg text-xs font-semibold">Confirmar Entrega Efectiva →</button>
+      </section>
+
+      <section id="view-cu05-paso4" class="view-section space-y-5">
+        <h2 class="text-2xl font-bold text-slate-900">Entrega efectiva registrada</h2>
+        <button onclick="navigate('dashboard')" class="bg-fdpus-blue text-white px-4 py-2 rounded-lg text-xs font-semibold">Volver al Dashboard</button>
+      </section>
+
+      <section id="view-cu05-paso5" class="view-section space-y-5">
+        <h2 class="text-2xl font-bold text-slate-900">Ayuda pendiente por falta de stock</h2>
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 text-xs">Bodega sin stock (0 unidades).</div>
+      </section>
+
+      <!-- =========================================================
+11. CU-06 REPORTES
+      ========================================================== -->
+      <section id="view-cu06-reportes" class="view-section space-y-5">
+        <h2 class="text-2xl font-bold text-slate-900">Informes Sociales</h2>
+        <button onclick="navigate('cu06-vista-previa')" class="bg-fdpus-blue text-white px-5 py-2 rounded-lg text-xs font-semibold">Generar informe →</button>
+      </section>
+
+      <section id="view-cu06-vista-previa" class="view-section space-y-5">
+        <h2 class="text-2xl font-bold text-slate-900">Vista previa · Ficha individual</h2>
+        <button onclick="showSuccess('Informe descargado con éxito')" class="bg-fdpus-blue text-white px-5 py-2 rounded-lg text-xs font-semibold">⬇ Descargar PDF</button>
+      </section>
+
+      <!-- =========================================================
+12. PANTALLA DE ÉXITO
+      ========================================================== -->
+      <section id="view-intervencion-exito" class="view-section">
+        <div class="bg-white rounded-xl border border-slate-200 p-16 text-center shadow-sm max-w-3xl mx-auto mt-6">
+          <div class="w-14 h-14 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">✓</div>
+          <h3 class="text-xl font-bold text-slate-900 mb-6" id="success-title">Operación realizada con éxito</h3>
+          <button onclick="navigate('dashboard')" class="bg-fdpus-green text-white px-6 py-2 rounded-md text-xs font-semibold">Volver al Dashboard</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODALES -->
+  <div id="new-disease-modal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4 text-xs">
+      <h3 class="text-base font-bold text-slate-900">Agregar nueva enfermedad</h3>
+      <input type="text" id="new-disease-input" placeholder="Ej: Cardiopatía congénita" class="w-full border rounded-lg px-3 py-2">
+      <div class="flex justify-end gap-2">
+        <button onclick="closeNewDiseaseModal()" class="border px-4 py-2 rounded-lg font-semibold">Cancelar</button>
+        <button onclick="addNewDisease()" class="bg-fdpus-green text-white px-4 py-2 rounded-lg font-semibold">Agregar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN CON ENVÍO DE GMAIL -->
+  <div id="approve-modal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 text-xs">
+      <h3 class="text-base font-bold text-slate-900">Confirmar postulación y notificar</h3>
+      <p class="text-slate-500">Se confirmará el ingreso de <strong>Martín Alejandro González Pérez</strong> a la fundación y se enviará una notificación automática al correo Gmail registrado.</p>
+      
+      <div class="space-y-1">
+        <label class="block font-semibold text-slate-700">Correo Gmail de notificación (Apoderada):</label>
+        <input type="email" id="approve-gmail-input" value="maria.gonzalez@gmail.com" class="w-full border border-slate-300 rounded-lg px-3 py-2 font-medium text-slate-800">
+      </div>
+
+      <div class="p-3 bg-slate-50 border rounded-lg"><strong>Responsable:</strong> Camila Rojas · Equipo médico</div>
+      
+      <div id="approve-sending-status" class="hidden bg-blue-50 text-blue-700 p-2.5 rounded-lg font-semibold">
+        ⏳ Enviando notificación de aceptación a Gmail...
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button onclick="closeApproveModal()" class="border px-4 py-2 rounded-lg font-semibold">Cancelar</button>
+        <button id="btn-confirm-approve" onclick="confirmApproval()" class="bg-fdpus-blue text-white px-4 py-2 rounded-lg font-semibold">Confirmar aprobación y enviar correo</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="reject-modal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 text-xs">
+      <h3 class="text-base font-bold text-slate-900">Rechazar postulación</h3>
+      <p class="text-slate-500">Registra una causal antes de confirmar el cierre del proceso. No se creará ficha oficial.</p>
+      <textarea id="reject-reason" rows="2" class="w-full border rounded-lg p-2" placeholder="Ingrese causal de rechazo *">No cumple criterios del programa (supuesto ficticio de demostración).</textarea>
+      <div id="reject-error" class="hidden bg-red-50 text-red-700 p-2 rounded">Campo obligatorio: sin causal registrada no se permite rechazar.</div>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeRejectModal()" class="border px-4 py-2 rounded-lg font-semibold">Cancelar</button>
+        <button onclick="confirmReject()" class="bg-fdpus-red text-white px-4 py-2 rounded-lg font-semibold">Confirmar rechazo</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="export-modal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 text-xs">
+      <h3 class="text-base font-bold text-slate-900">Exportar beneficiarios</h3>
+      <p class="text-slate-500">Se exportarán los registros seleccionados en formato Excel/CSV.</p>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeExportModal()" class="border px-4 py-2 rounded-lg font-semibold">Cancelar</button>
+        <button onclick="closeExportModal(); showSuccess('Ficha exportada con éxito');" class="bg-fdpus-green text-white px-4 py-2 rounded-lg font-semibold">⬇ Exportar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="discard-modal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4 text-xs">
+      <h3 class="text-base font-bold text-slate-900">¿Quieres salir sin guardar?</h3>
+      <p class="text-slate-500">Si sales ahora, se perderán los cambios no guardados.</p>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeDiscardModal()" class="border px-4 py-2 rounded-lg font-semibold">Seguir editando</button>
+        <button onclick="closeDiscardModal(); navigate('ficha-beneficiario');" class="bg-fdpus-red text-white px-4 py-2 rounded-lg font-semibold">Salir sin guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="medical-modal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4 text-xs">
+      <h3 class="text-base font-bold text-slate-900">📎 Seleccionar informe médico</h3>
+      <label class="flex items-center justify-between p-3 border-2 border-blue-600 bg-blue-50/40 rounded-xl">
+        <span><strong>Informe_medico_ejemplo.pdf</strong> (2,4 MB)</span>
+        <input type="radio" name="doc_sample" value="Informe_medico_ejemplo.pdf (2,4 MB)" checked>
+      </label>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal()" class="border px-4 py-2 rounded-lg font-semibold">Cancelar</button>
+        <button onclick="attachSelectedFile()" class="bg-fdpus-blue text-white px-4 py-2 rounded-lg font-semibold">Adjuntar archivo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST DE NOTIFICACIÓN GMAIL -->
+  <div id="gmail-toast" class="fixed bottom-12 right-6 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg text-xs flex items-center gap-3 hidden z-50 border border-slate-700">
+    <span class="bg-green-500 text-slate-900 font-bold w-6 h-6 rounded-full flex items-center justify-center">✉️</span>
+    <div>
+      <p class="font-bold">Correo enviado a Gmail</p>
+      <p class="text-slate-300" id="gmail-toast-sub">Notificación enviada a maria.gonzalez@gmail.com</p>
+    </div>
+  </div>
+
+  <!-- FOOTER INSTITUCIONAL ROJO -->
+  <footer class="bg-fdpus-red text-white px-6 py-3 text-xs flex flex-wrap justify-between items-center mt-auto">
+    <span><strong>FDPUS</strong> · Fundación Deportistas por un Sueño</span>
+    <span class="text-red-100">Plataforma de gestión institucional · Uso interno · 2026</span>
+  </footer>
+
+  <script>
+    // =========================================================
+    // CONFIGURACIÓN DE EMAILJS PARA ENVÍO REAL A GMAIL
+    // Reemplaza estas 3 credenciales con las de tu cuenta gratuita en emailjs.com
+    // =========================================================
+    const EMAILJS_PUBLIC_KEY  = "TU_PUBLIC_KEY";   // Ej: "user_abc123XYZ"
+    const EMAILJS_SERVICE_ID  = "TU_SERVICE_ID";   // Ej: "service_gmail_fdpus"
+    const EMAILJS_TEMPLATE_ID = "TU_TEMPLATE_ID";  // Ej: "template_aceptado"
+
+    if (typeof emailjs !== "undefined" && EMAILJS_PUBLIC_KEY !== "TU_PUBLIC_KEY") {
+      emailjs.init(EMAILJS_PUBLIC_KEY);
+    }
+
+    const beneficiariesData = [
+      { apellidos: 'González Pérez', nombres: 'Martín Alejandro', run: 'DEMO-NNA-001', nac: '15/03/2016', comuna: 'La Florida', region: 'Metropolitana', electro: true },
+      { apellidos: 'Contreras Ríos', nombres: 'Mateo Andrés', run: 'DEMO-002', nac: '22/08/1995', comuna: 'Viña del Mar', region: 'Valparaíso', electro: false },
+      { apellidos: 'Fuentes Lagos', nombres: 'Sofía Elena', run: 'DEMO-003', nac: '06/11/1972', comuna: 'Concepción', region: 'Biobío', electro: false },
+      { apellidos: 'González Vera', nombres: 'Lucas Tomás', run: 'DEMO-004', nac: '18/01/2004', comuna: 'Puente Alto', region: 'Metropolitana', electro: true },
+      { apellidos: 'Morales Soto', nombres: 'Antonia Paz', run: 'DEMO-005', nac: '30/06/1964', comuna: 'Temuco', region: 'La Araucanía', electro: false },
+      { apellidos: 'Rojas Sepúlveda', nombres: 'Benjamín José', run: 'DEMO-006', nac: '09/09/1981', comuna: 'La Florida', region: 'Metropolitana', electro: false }
+    ];
+
+    let viewHistory = ['dashboard'];
+
+    function renderBeneficiaries(list) {
+      const tbody = document.getElementById('benef-table-body');
+      const empty = document.getElementById('benef-empty-state');
+      const badge = document.getElementById('benef-count-badge');
+      tbody.innerHTML = '';
+      badge.textContent = list.length === 6 ? '6 de 24 registros' : list.length + (list.length === 1 ? ' registro' : ' registros');
+
+      if (list.length === 0) {
+        empty.classList.remove('hidden');
+      } else {
+        empty.classList.add('hidden');
+        list.forEach(b => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+              <td class="py-3 px-4 font-bold">${b.apellidos}</td>
+              <td class="py-3 px-4">${b.nombres}</td>
+              <td class="py-3 px-4">${b.run}</td>
+              <td class="py-3 px-4">${b.nac}</td>
+              <td class="py-3 px-4">${b.comuna}</td>
+              <td class="py-3 px-4">${b.region}</td>
+              <td class="py-3 px-4"><button onclick="navigate('ficha-beneficiario')" class="bg-blue-50 text-blue-700 p-1.5 rounded-lg">👁️</button></td>
+            </tr>`;
+        });
+      }
+    }
+
+    function filterBeneficiaries() {
+      const text = document.getElementById('benef-search-input').value.toLowerCase();
+      const region = document.getElementById('benef-region-select').value;
+      const comuna = document.getElementById('benef-comuna-select').value;
+      const electro = document.getElementById('benef-electro-check').checked;
+
+      const filtered = beneficiariesData.filter(b => {
+        const matchText = !text || b.apellidos.toLowerCase().includes(text) || b.nombres.toLowerCase().includes(text) || b.run.toLowerCase().includes(text);
+        const matchRegion = !region || b.region === region;
+        const matchComuna = !comuna || b.comuna === comuna;
+        const matchElectro = !electro || b.electro;
+        return matchText && matchRegion && matchComuna && matchElectro;
+      });
+      renderBeneficiaries(filtered);
+    }
+
+    function resetBenefFilters() {
+      document.getElementById('benef-search-input').value = '';
+      document.getElementById('benef-region-select').value = '';
+      document.getElementById('benef-comuna-select').value = '';
+      document.getElementById('benef-electro-check').checked = false;
+      renderBeneficiaries(beneficiariesData);
+    }
+
+    function globalQuickSearch() {
+      const q = document.getElementById('global-search').value;
+      navigate('cu02-lista');
+      document.getElementById('benef-search-input').value = q;
+      filterBeneficiaries();
+    }
+
+    function navigate(viewId, recordHistory = true) {
+      if (recordHistory && viewHistory[viewHistory.length - 1] !== viewId) {
+        viewHistory.push(viewId);
+      }
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById('view-' + viewId);
+      if (target) target.classList.add('active');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-white', 'shadow-sm', 'font-semibold'));
+      const activeNav = document.getElementById('nav-' + viewId);
+      if (activeNav) activeNav.classList.add('bg-white', 'shadow-sm', 'font-semibold');
+
+      const backBtn = document.getElementById('global-back-btn');
+      const sidebar = document.getElementById('main-sidebar');
+      if (viewId === 'dashboard') {
+        backBtn.classList.add('hidden');
+        sidebar.classList.remove('lg:hidden');
+        sidebar.classList.add('lg:flex');
+      } else {
+        backBtn.classList.remove('hidden');
+        sidebar.classList.remove('lg:flex');
+        sidebar.classList.add('lg:hidden');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goBack() {
+      if (viewHistory.length > 1) {
+        viewHistory.pop();
+        navigate(viewHistory[viewHistory.length - 1], false);
+      } else {
+        navigate('dashboard', false);
+      }
+    }
+
+    function showSuccess(message) {
+      document.getElementById('success-title').textContent = message;
+      navigate('intervencion-exito');
+    }
+
+    function saveEnrichedFicha() {
+      const id = document.getElementById('enq-id').value.trim();
+      const ap = document.getElementById('enq-apellidos').value.trim();
+      const com = document.getElementById('enq-comuna').value.trim();
+      const err = document.getElementById('enriquecer-error-banner');
+      if (!id || !ap || !com) { err.classList.remove('hidden'); }
+      else { err.classList.add('hidden'); showSuccess('Ficha creada / actualizada con éxito'); }
+    }
+
+    function selectCausal(causal) {
+      document.getElementById('selected-causal-label').textContent = causal;
+      document.querySelectorAll('.causal-btn').forEach(btn => {
+        btn.classList.remove('bg-fdpus-blue', 'text-white');
+        btn.classList.add('border');
+      });
+      const active = document.getElementById('btn-causal-' + causal);
+      active.classList.remove('border');
+      active.classList.add('bg-fdpus-blue', 'text-white');
+    }
+
+    function openNewDiseaseModal() { document.getElementById('new-disease-modal').classList.replace('hidden', 'flex'); }
+    function closeNewDiseaseModal() { document.getElementById('new-disease-modal').classList.replace('flex', 'hidden'); }
+    function addNewDisease() {
+      const val = document.getElementById('new-disease-input').value.trim();
+      if (val) {
+        const sel = document.getElementById('disease-select');
+        const opt = document.createElement('option');
+        opt.text = val;
+        opt.selected = true;
+        sel.add(opt);
+        document.getElementById('new-disease-input').value = '';
+      }
+      closeNewDiseaseModal();
+    }
+
+    function openApproveModal() {
+      document.getElementById('approve-sending-status').classList.add('hidden');
+      document.getElementById('btn-confirm-approve').disabled = false;
+      document.getElementById('approve-modal').classList.replace('hidden', 'flex');
+    }
+    function closeApproveModal() { document.getElementById('approve-modal').classList.replace('flex', 'hidden'); }
+
+    // =========================================================
+    // FUNCIÓN DE APROBACIÓN + ENVÍO DE NOTIFICACIÓN A GMAIL
+    // =========================================================
+    async function confirmApproval() {
+      const emailDestino = document.getElementById('approve-gmail-input').value.trim() || 'maria.gonzalez@gmail.com';
+      const statusBox = document.getElementById('approve-sending-status');
+      const confirmBtn = document.getElementById('btn-confirm-approve');
+
+      statusBox.classList.remove('hidden');
+      confirmBtn.disabled = true;
+
+      const templateParams = {
+        to_email: emailDestino,
+        apoderada_nombre: 'María José González Pérez',
+        nino_nombre: 'Martín Alejandro González Pérez',
+        nino_run: 'DEMO-NNA-001',
+        ficha_codigo: 'FICHA-DEMO-001',
+        mensaje: 'Nos alegra informarle que la postulación de Martín Alejandro González Pérez ha sido ACEPTADA en la Fundación Deportistas por un Sueño (FDPUS).'
+      };
+
+      // Si EmailJS está configurado con claves reales, envía el correo verdadero a Gmail
+      if (typeof emailjs !== "undefined" && EMAILJS_PUBLIC_KEY !== "TU_PUBLIC_KEY") {
+        try {
+          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
+        } catch (error) {
+          console.error('Error al enviar correo con EmailJS:', error);
+        }
+      } else {
+        // Simulación de latencia de envío para demostración en prototipo
+        await new Promise(resolve => setTimeout(resolve, 700));
+      }
+
+      // Actualizar los textos de correo en la vista de Postulación Aprobada
+      document.getElementById('banner-email-destino').textContent = emailDestino;
+      document.getElementById('trace-email-destino').textContent = emailDestino;
+      document.getElementById('preview-email-to').textContent = emailDestino;
+      document.getElementById('card-email-destino').textContent = emailDestino;
+
+      closeApproveModal();
+      navigate('cu01-aprobada');
+
+      // Mostrar notificación flotante (Toast)
+      const toast = document.getElementById('gmail-toast');
+      document.getElementById('gmail-toast-sub').textContent = `Notificación de aceptación enviada a ${emailDestino}`;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 5000);
+    }
+
+    function openGmailComposeFallback() {
+      const email = document.getElementById('preview-email-to').textContent;
+      const subject = encodeURIComponent('¡Bienvenido a FDPUS! Postulación aceptada - Martín Alejandro González Pérez');
+      const body = encodeURIComponent(
+        'Estimada María José González Pérez,\n\n' +
+        'Nos alegra informarle que la postulación de Martín Alejandro González Pérez (RUN: DEMO-NNA-001) ha sido ACEPTADA en la Fundación Deportistas por un Sueño (FDPUS).\n' +
+        'Su ficha oficial ya se encuentra activa bajo el código FICHA-DEMO-001.\n\n' +
+        'Atentamente,\nEquipo Médico y Social · FDPUS'
+      );
+      window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${subject}&body=${body}`, '_blank');
+    }
+
+    function openRejectModal() { document.getElementById('reject-modal').classList.replace('hidden', 'flex'); }
+    function closeRejectModal() { document.getElementById('reject-modal').classList.replace('flex', 'hidden'); }
+    function confirmReject() {
+      const reason = document.getElementById('reject-reason').value.trim();
+      if (!reason) {
+        document.getElementById('reject-error').classList.remove('hidden');
+      } else {
+        document.getElementById('reject-error').classList.add('hidden');
+        document.getElementById('confirmed-reject-reason').textContent = reason;
+        closeRejectModal();
+        navigate('cu01-rechazada');
+      }
+    }
+    function openExportModal() { document.getElementById('export-modal').classList.replace('hidden', 'flex'); }
+    function closeExportModal() { document.getElementById('export-modal').classList.replace('flex', 'hidden'); }
+    function openDiscardModal() { document.getElementById('discard-modal').classList.replace('hidden', 'flex'); }
+    function closeDiscardModal() { document.getElementById('discard-modal').classList.replace('flex', 'hidden'); }
+    function openModal() { document.getElementById('medical-modal').classList.replace('hidden', 'flex'); }
+    function closeModal() { document.getElementById('medical-modal').classList.replace('flex', 'hidden'); }
+    function attachSelectedFile() {
+      const selected = document.querySelector('input[name="doc_sample"]:checked');
+      if (selected) document.getElementById('attached-file-name').textContent = '📄 ' + selected.value;
+      closeModal();
+    }
+
+    renderBeneficiaries(beneficiariesData);
+  </script>
+</body>
+</html>
